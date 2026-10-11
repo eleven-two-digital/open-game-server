@@ -32,24 +32,30 @@ Support for multiple transports (HTTP, WebSockets, SSE) in parallel, or configur
 
 ## Component Structure
 
-```
-┌─────────────┐
-│ Game Client │
-└──────┬──────┘
-       │
-       ├─────────────────────────────┐
-       │                             │
-   ┌───▼─────────┐          ┌────────▼───────┐
-   │   IdP       │          │ Discovery  │
-   │ (OAuth2)    │          │ (mTLS, JWKS)   │
-   └─────────────┘          └────────┬───────┘
-                                     │
-                        ┌────────────┴────────────┐
-                        │                         │
-                 ┌──────▼──────┐          ┌──────▼──────┐
-                 │  Room A     │          │  Room B     │
-                 │ (Container) │          │ (Container) │
-                 └─────────────┘          └─────────────┘
+```mermaid
+flowchart TB
+    client["Game client"]
+    idp["Identity provider<br/>OAuth2 / OIDC"]
+    discovery["Discovery server<br/>mTLS · JWKS · room lookup"]
+    roomA["Room A<br/>Independent match"]
+    roomB["Room B<br/>Independent match"]
+
+    idp -->|"Player identity"| client
+    client -->|"Find and resolve a room"| discovery
+    discovery -->|"Join ticket and connection details"| client
+    roomA -->|"Self-register securely"| discovery
+    roomB -->|"Self-register securely"| discovery
+    client -->|"Connect directly"| roomA
+    client -->|"Connect directly"| roomB
+
+    classDef clientNode fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef identityNode fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef discoveryNode fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef roomNode fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class client clientNode
+    class idp identityNode
+    class discovery discoveryNode
+    class roomA,roomB roomNode
 ```
 
 The client gets its credentials from the IdP, resolves rooms through Discovery, and connects directly to the chosen room.

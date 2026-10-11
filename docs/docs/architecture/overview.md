@@ -8,34 +8,33 @@ The **Open Game Server Ecosystem** is a decentralized, high-performance architec
 
 ## Ecosystem Layers
 
-```
-┌────────────────────────────────────────────────────┐
-│  Client Layer                                      │
-│  Game Client (Unity / Unreal / Godot / Web)        │
-└────────────────────────────────────────────────────┘
-                        ↓
-┌────────────────────────────────────────────────────┐
-│  Identity Layer                                    │
-│  Identity Provider (OAuth2 / OIDC / Steam / Epic)  │
-└────────────────────────────────────────────────────┘
-                        ↓
-┌────────────────────────────────────────────────────┐
-│  Discovery & Proxy Layer                           │
-│  Discovery Server                            │
-│  • mTLS with rooms                                 │
-│  • JWT/JWKS validation for clients                 │
-│  • Address masking                                 │
-└────────────────────────────────────────────────────┘
-                        ↓
-┌────────────────────────────────────────────────────┐
-│  Decentralized Room Layer                          │
-│  • Instance A (Host 1)                             │
-│  • Instance B (Host 2)                             │
-│  • Instance N (Host N)                             │
-│                                                    │
-│  Each room: stateless, ECDH encryption,            │
-│  multi-transport                                   │
-└────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    client["Game client<br/>Unity · Unreal · Godot · Web"]
+    idp["Identity provider<br/>OAuth2 · OIDC · platform auth"]
+    discovery["Discovery server<br/>JWT/JWKS validation<br/>Masked room catalog<br/>Signed join tickets"]
+    roomA["Room instance A"]
+    roomB["Room instance B"]
+    roomN["Room instance N"]
+
+    idp -->|"Identity token"| client
+    client -->|"List and resolve rooms"| discovery
+    discovery -->|"Masked listing · address · join ticket"| client
+    roomA -->|"mTLS registration and heartbeat"| discovery
+    roomB -->|"mTLS registration and heartbeat"| discovery
+    roomN -->|"mTLS registration and heartbeat"| discovery
+    client <-->|"Direct connection · ECDH · HTTP / WS / SSE"| roomA
+    client <-->|"Direct connection · ECDH · HTTP / WS / SSE"| roomB
+    client <-->|"Direct connection · ECDH · HTTP / WS / SSE"| roomN
+
+    classDef client fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef identity fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef discoveryNode fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef room fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    class client client
+    class idp identity
+    class discovery discoveryNode
+    class roomA,roomB,roomN room
 ```
 
 ## Connection Flow

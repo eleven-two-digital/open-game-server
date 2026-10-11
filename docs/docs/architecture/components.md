@@ -104,26 +104,25 @@ Returns capabilities, routes, protocols, and version.
 
 ## Interaction Between Components
 
-```
- Client                          IdP                     Discovery              Room
-   │                             │                       │                       │
-   ├─────── Auth Request ───────>│                       │                       │
-   │<────── Returns JWT ──────────┤                       │                       │
-   │                             │                       │                       │
-   │                             │    Auto-Register ─────>│                       │
-   │                             │    (mTLS, Heartbeat)   │                       │
-   │                             │                       │                       │
-   ├─ List Rooms + Bearer JWT ──────────────────────────>│                       │
-   │<─────── Masked Rooms ──────────────────────────────┤                       │
-   │                             │                       │                       │
-   ├─ Resolve + Join Ticket Req ──────────────────────────>│                       │
-   │<─ Host/Port + Signed Ticket ──────────────────────┤                       │
-   │                             │                       │                       │
-   ├─ Handshake ECDH ──────────────────────────────────────────────────────────>│
-   │<─ ECDH Response ─────────────────────────────────────────────────────────┤
-   │                             │                       │                       │
-   │<═════ Encrypted State Loop (WS/SSE/HTTP) ═══════════════════════════════>│
-   │                             │                       │                       │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant IdP as Identity Provider
+    participant Discovery
+    participant Room as Room instance
+
+    Room->>Discovery: Register and renew lease over mTLS
+    Client->>IdP: Authenticate player
+    IdP-->>Client: Issue identity token
+    Client->>Discovery: List rooms and resolve selection
+    Discovery-->>Client: Masked listing, address, and signed join ticket
+    Client->>Room: Connect with ticket and begin ECDH handshake
+    Room-->>Client: Verify identity and complete key exchange
+    loop Match session
+        Room-->>Client: Encrypted state updates over HTTP, WebSocket, or SSE
+        Client->>Room: Encrypted player inputs
+    end
 ```
 
 Continue to [Security](security) to see the protection mechanisms at each layer.

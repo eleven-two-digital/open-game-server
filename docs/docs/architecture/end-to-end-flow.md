@@ -8,15 +8,13 @@ This is the complete flow for a player, from authentication to state synchroniza
 
 ## 1. Authentication
 
-```
-Client                               IdP
-  │                                  │
-  ├─────── POST /auth ──────────────>│
-  │       (credentials)              │
-  │                                  │
-  │<───── 200 OK + JWT ──────────────┤
-  │       (access_token, refresh)    │
-  │                                  │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant IdP as Identity Provider
+    Client->>IdP: POST /auth with credentials
+    IdP-->>Client: 200 OK with access token and refresh token
 ```
 
 **What happens:**
@@ -28,24 +26,14 @@ Client                               IdP
 
 ## 2. Room Discovery
 
-```
-Client                               Discovery
-  │                                  │
-  ├─ GET /v1/rooms ─────────────────>│
-  │   (Bearer: JWT)                  │
-  │   (Query: ?game_mode=race)       │
-  │                                  │
-  │<─ 200 OK (JSON Array) ───────────┤
-  │  [                               │
-  │    {                             │
-  │      "id": "room-1",             │
-  │      "name": "Fast Track #1",    │
-  │      "current_players": 3,       │
-  │      "max_players": 8,           │
-  │      "latency_ms": 45            │
-  │    },                            │
-  │    ...                           │
-  │  ]                               │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Discovery
+    Client->>Discovery: GET /v1/rooms with JWT and search filters
+    Discovery->>Discovery: Validate JWT and filter available rooms
+    Discovery-->>Client: Return masked room listings and metadata
 ```
 
 **What happens:**
@@ -58,21 +46,15 @@ Client                               Discovery
 
 ## 3. Resolution and Join Ticket
 
-```
-Client                               Discovery
-  │                                  │
-  ├─ POST /v1/rooms/resolve ────────>│
-  │   (Bearer: JWT)                  │
-  │   (masked_token: "tok_room_1")            │
-  │                                  │
-  │<─ 200 OK ────────────────────────┤
-  │  {                               │
-  │    "host": "192.168.1.100",      │
-  │    "port": 9000,                 │
-  │    "protocol": "wss",            │
-  │    "join_ticket": "base64(...)", │
-  │    "ttl_seconds": 300                    │
-  │  }                               │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Discovery
+    Client->>Discovery: POST /v1/rooms/resolve with masked_token
+    Discovery->>Discovery: Validate JWT and room availability
+    Discovery->>Discovery: Sign join ticket with player identity and TTL
+    Discovery-->>Client: Return room address, protocol, and join ticket
 ```
 
 **What happens:**
@@ -89,31 +71,21 @@ Client                               Discovery
 
 ## 4. ECDH Handshake
 
-```
-Client                               Room
-  │                                  │
-  ├─ WebSocket Connect ─────────────>│
-  │   (join_ticket, JWT)             │
-  │                                  │
-  ├─ POST /v1/handshake ────────────>│
-  │   (join_ticket)                  │
-  │   (client_public_key: ECDH)      │
-  │                                  │
-  │<─ 200 OK (Challenge) ────────────┤
-  │   (room_public_key: ECDH)        │
-  │   (nonce)                        │
-  │                                  │
-  │ ── (Derive Shared Secret) ──────>│
-  │<── (Derive Shared Secret) ───────│
-  │                                  │
-  ├─ POST /v1/handshake ─────>│
-  │   (challenge_signature)          │
-  │   (encrypted with session key)   │
-  │                                  │
-  │<─ 200 OK (Welcome) ──────────────┤
-  │   (schema, player_info)          │
-  │   (encrypted with session key)   │
-  │                                  │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Room
+    Client->>Room: Connect with join ticket and client ECDH key
+    Room->>Room: Validate ticket, signature, and player identity
+    Room-->>Client: Return room ECDH key and challenge nonce
+    par Independent key derivation
+        Client->>Client: Derive shared secret and session key
+    and
+        Room->>Room: Derive shared secret and session key
+    end
+    Client->>Room: Return encrypted challenge response
+    Room-->>Client: Confirm handshake and send welcome
 ```
 
 **What happens:**
@@ -132,27 +104,17 @@ Client                               Room
 
 ## 5. Reactive State Sync
 
-```
-Room                                 Client
-  │                                  │
-  ├─ (Initial state) ───────────────>│
-  │  {                               │
-  │    "server": {                   │
-  │      "game_state": "racing",     │
-  │      "_id": "abc123",            │
-  │      "ttl_ms": 60000                │
-  │    },                            │
-  │    "me": {                       │
-  │      "position": {x, y, z},      │
-  │      "speed": 45,                │
-  │      "_id": "xyz789",            │
-  │      "ttl_ms": 100                  │
-  │    },                            │
-  │    "others": [...]               │
-  │  }                               │
-  │                                  │
-  │ (Encrypted with session key)     │
-  │                                  │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Room
+    participant Client
+    Room-->>Client: Send encrypted initial state ($.server, $.me, $.others)
+    Note over Room,Client: Root attributes carry _id and ttl_ms for change detection and expiry
+    loop While the match is active
+        Room-->>Client: Send encrypted state changes
+        Client->>Client: Reprocess changed or expired attributes
+    end
 ```
 
 **What happens:**
@@ -168,23 +130,16 @@ Room                                 Client
 
 ## 6. Input Loop
 
-```
-Client                               Room
-  │                                  │
-  ├─ Send: "move forward" ──────────>│
-  │  (Encrypted, occurred_at)          │
-  │                                  │
-  ├─ Send: "turn left" ─────────────>│
-  │  (Encrypted, occurred_at)          │
-  │                                  │
-  │<─ State Update ──────────────────┤
-  │  ($.others[].position updated)   │
-  │  (_id changed, client reprocesses)│
-  │                                  │
-  │<─ State Update ──────────────────┤
-  │  ($.server.race_time changed)    │
-  │  (client updates the timer)      │
-  │                                  │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Room
+    loop Player input and simulation
+        Client->>Room: Send encrypted input with occurred_at
+        Room->>Room: Validate input and advance simulation
+        Room-->>Client: Send encrypted state updates with new _id values
+    end
 ```
 
 **What happens:**
@@ -199,20 +154,17 @@ Client                               Room
 
 ## 7. Admin Intervention (Optional)
 
-```
-Admin Bot                            Room
-  │                                  │
-  ├─ POST /v1/admin/handshake ──────>│
-  │   (admin_token)                  │
-  │                                  │
-  │<─ 200 OK ────────────────────────┤
-  │   (Session established)          │
-  │                                  │
-  ├─ DELETE /v1/admin/players/xyz ──>│
-  │   (Kick player xyz)              │
-  │                                  │
-  │<─ 200 OK ────────────────────────┤
-  │                                  │
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Admin as Admin bot
+    participant Room
+    Admin->>Room: POST /v1/admin/handshake with admin token
+    Room-->>Admin: Establish authorized admin session
+    Admin->>Room: Submit moderation or match operation
+    Room->>Room: Validate scope and execute operation
+    Room-->>Admin: Return operation result
+    Room-->>Admin: Notify affected clients as needed
 ```
 
 **What happens:**

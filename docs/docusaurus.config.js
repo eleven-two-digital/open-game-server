@@ -13,6 +13,11 @@ const config = {
   organizationName: 'eleven-two-digital',
   projectName: 'open-game-server',
 
+  themes: ['@docusaurus/theme-mermaid'],
+  markdown: {
+    mermaid: true,
+  },
+
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
@@ -59,6 +64,12 @@ const config = {
       prism: {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
+      },
+      mermaid: {
+        theme: {
+          light: 'neutral',
+          dark: 'dark',
+        },
       },
     }),
 };

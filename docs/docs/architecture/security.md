@@ -16,10 +16,17 @@ The Open Game Server enforces security in **three independent trust zones**:
 - A JWKS (JSON Web Key Set) published for stateless validation
 
 **Flow:**
-```
-Client ──(credentials)──> IdP ──(JWT + Refresh)──> Client
-                                      ↓
-                           Signed with the IdP's private key
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant IdP as Identity Provider
+    participant Discovery
+    Client->>IdP: Submit credentials
+    IdP->>IdP: Sign identity token with private key
+    IdP-->>Client: Return JWT and refresh token
+    Client->>Discovery: Present JWT
+    Discovery->>Discovery: Validate signature against IdP JWKS
 ```
 
 **Validation:** Discovery validates the JWT by checking its signature against the IdP's JWKS, without keeping any state.
@@ -36,11 +43,18 @@ Client ──(credentials)──> IdP ──(JWT + Refresh)──> Client
 - Discovery holds a certificate to authenticate itself to the room
 
 **Flow:**
-```
-Room ──(Hello + Certificate)──> Discovery
-Discovery ──(Validates chain)──> OK
-Discovery ──(Hello + Certificate)──> Room
-Room ──(Validates chain)──> OK
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Room
+    participant Discovery
+    Room->>Discovery: Present room certificate
+    Discovery->>Discovery: Validate certificate chain and identity
+    Discovery-->>Room: Accept or reject connection
+    Discovery->>Room: Present Discovery certificate
+    Room->>Room: Validate certificate chain and identity
+    Room-->>Discovery: Accept or reject connection
+    Note over Room,Discovery: TLS 1.3 establishes an encrypted, mutually authenticated channel
 ```
 
 **Benefits:**
@@ -64,15 +78,19 @@ Room ──(Validates chain)──> OK
 - **AES-256-GCM** or **ChaCha20 + Poly1305** for authenticated encryption
 
 **Flow:**
-```
-Client ──(ECDH public key)──> Room
-Room ──(ECDH public key)──> Client
-                    ↓
-        Both derive: Shared Secret
-                    ↓
-        Shared Secret → KDF → Session Key
-                    ↓
-        Session Key encrypts all payloads
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Room
+    Client->>Room: Send ephemeral ECDH public key
+    Room-->>Client: Send ephemeral ECDH public key
+    par Derive session key independently
+        Client->>Client: Shared secret → KDF → session key
+    and
+        Room->>Room: Shared secret → KDF → session key
+    end
+    Note over Client,Room: Session key protects payloads with AES-256-GCM or ChaCha20-Poly1305
 ```
 
 **Properties:**
@@ -117,10 +135,15 @@ Admin agents (Game Masters, bots) authenticate with:
 - Validation of the token by the room before any admin operation runs
 
 **Example:**
-```
-Admin ──(Admin Token)──> Room
-Room ──(Validates JWT with admin_scope)──> OK
-Room ──(Executes: kick player_id)──> OK
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Admin as Admin agent
+    participant Room
+    Admin->>Room: Present token with admin_scope
+    Room->>Room: Validate token and requested permission
+    Room->>Room: Execute authorized operation
+    Room-->>Admin: Return operation result
 ```
 
 ---

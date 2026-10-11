@@ -40,19 +40,18 @@ $ openssl req -new -x509 -keyout ca.key -out ca.crt
 
 When a room tries to connect to Discovery:
 
-```
-1. Room → Discovery: "Hello, I am room-1234, my cert is [cert.pem]"
-2. Discovery: "I check whether your cert is signed by a CA I trust"
-   └─> ✓ Valid → continue
-   └─> ✗ Invalid → reject
-
-3. Discovery → Room: "OK, I am discovery.example.com, my cert is [cert.pem]"
-4. Room: "I check whether your cert is signed by a CA I trust"
-   └─> ✓ Valid → continue
-   └─> ✗ Invalid → reject
-
-5. Both sides: derive the shared secret through TLS 1.3
-6. The connection is established and encrypted with TLS
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Room
+    participant Discovery
+    Room->>Discovery: Present room certificate
+    Discovery->>Discovery: Validate CA, expiry, and room identity
+    Discovery-->>Room: Accept or reject room certificate
+    Discovery->>Room: Present Discovery certificate
+    Room->>Room: Validate CA, expiry, and Discovery identity
+    Room-->>Discovery: Accept or reject Discovery certificate
+    Note over Room,Discovery: On success, TLS 1.3 establishes an encrypted shared session
 ```
 
 ## Discovery Configuration

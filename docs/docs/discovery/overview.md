@@ -17,66 +17,46 @@ The **Discovery Server** (also called the "Discovery") is the central component 
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────┐
-│  Discovery Server         │
-├─────────────────────────────────┤
-│                                 │
-│  ┌──────────────────────────┐  │
-│  │  Room Registry           │  │
-│  │  ├─ room-1 (active)      │  │
-│  │  ├─ room-2 (active)      │  │
-│  │  └─ room-3 (draining)    │  │
-│  └──────────────────────────┘  │
-│           ↑       ↓             │
-│    [mTLS] │       │ [mTLS]      │
-│           │       │             │
-│  ┌──────────────────────────┐  │
-│  │  Room Heartbeat Listener │  │
-│  │  • Auto-renew lease      │  │
-│  │  • Detect stale rooms    │  │
-│  └──────────────────────────┘  │
-│                                 │
-│  ┌──────────────────────────┐  │
-│  │  Client Request Handler  │  │
-│  │  • Validate JWT/JWKS     │  │
-│  │  • List (masked)         │  │
-│  │  • Resolve (unmask)      │  │
-│  │  • Apply filters         │  │
-│  └──────────────────────────┘  │
-│                                 │
-└─────────────────────────────────┘
+```mermaid
+flowchart LR
+    rooms["Room instances"]
+    clients["Game clients"]
+
+    subgraph discovery["Discovery server"]
+        lifecycle["Room lifecycle handler<br/>Register · heartbeat · lease expiry"]
+        registry[("Room registry<br/>Active and draining rooms")]
+        requests["Client request handler<br/>JWT/JWKS · filters · masked listing"]
+        tickets["Resolution service<br/>Address and signed join ticket"]
+
+        lifecycle -->|"Add / renew / expire"| registry
+        registry -->|"Available rooms"| requests
+        requests -->|"Selected room"| tickets
+    end
+
+    rooms -->|"mTLS registration and heartbeat"| lifecycle
+    clients -->|"JWT-authenticated search"| requests
+    tickets -->|"Masked results and join details"| clients
+
+    classDef external fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef service fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef store fill:#fef3c7,stroke:#d97706,color:#78350f
+    class rooms,clients external
+    class lifecycle,requests,tickets service
+    class registry store
 ```
 
 ## Room Lifecycle
 
-```
-1. Startup
-   └─> The room reads the Discovery endpoint from its config
-       └─> Generates an X.509 certificate
-
-2. Self-registration (mTLS)
-   └─> POST /v1/discovery/register
-       ├─ X.509 certificate
-       ├─ Public ECDH key
-       ├─ Metadata (max_players, game_mode, tags)
-       └─> Discovery validates the certificate and stores the room
-
-3. Periodic heartbeat (every 30s)
-   └─> POST /v1/discovery/heartbeat
-       ├─ room_id, occurred_at
-       ├─ Current players, state
-       └─> Discovery renews the lease
-
-4. Drain mode (before shutdown)
-   └─> POST /v1/discovery/drain
-       ├─ Signals that the room no longer accepts new clients
-       ├─ Clients receive a signal to migrate
-       └─> Discovery marks the room as "draining"
-
-5. Deregistration
-   └─> Heartbeat timeout (180 seconds)
-       └─> Discovery removes the room from the catalog
+```mermaid
+flowchart LR
+    start([Room starts]) --> configure[Load Discovery endpoint and create certificate]
+    configure --> register[Register over mTLS]
+    register --> active[Room is active in the catalog]
+    active --> heartbeat[Renew lease every 30 seconds]
+    heartbeat --> active
+    active --> drain[Enter drain mode before shutdown]
+    drain --> deregister[Heartbeat lease expires]
+    deregister --> removed([Discovery removes room from catalog])
 ```
 
 ## Main Endpoints
@@ -94,31 +74,20 @@ The **Discovery Server** (also called the "Discovery") is the central component 
 
 ## Discovery Flow
 
-```
-Client (with JWT)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Discovery
+    participant Room as Selected room
 
-    ├─ GET /v1/rooms?game_mode=race&language=pt-BR
-    │
-    └─> Discovery
-        ├─ Validates JWT (IdP JWKS)
-        ├─ Filters rooms by query parameters
-        ├─ Masks real addresses
-        └─ Returns: [{id, name, game_mode, current_players, max_players, latency_ms, tags}]
-
-    ├─ POST /v1/rooms/resolve (masked_token: "tok_room_1")
-    │
-    └─> Discovery
-        ├─ Validates JWT (again)
-        ├─ Issues a signed join ticket
-        │  {
-        │    "masked_token": "tok_room_1",
-        │    "player_id": "player-xyz",
-        │    "ttl_seconds": 300,
-        │    "signature": "HMAC-SHA256(...)"
-        │  }
-        └─ Returns: {host, port, protocol, join_ticket, ttl_ms}
-
-    └─> The client connects directly to the room with the join_ticket
+    Client->>Discovery: GET /v1/rooms with JWT and filters
+    Discovery->>Discovery: Validate JWT and filter catalog
+    Discovery-->>Client: Return masked room listings
+    Client->>Discovery: POST /v1/rooms/resolve with masked_token
+    Discovery->>Discovery: Validate JWT and issue signed join ticket
+    Discovery-->>Client: Return connection details and join ticket
+    Client->>Room: Connect directly with join ticket
 ```
 
 Continue with [Room Registration](room-registration), [Room Listing](room-listing), and [Ticket Resolution](ticket-resolution).

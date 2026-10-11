@@ -70,18 +70,20 @@ Content-Type: application/json
 
 ### 3. Validation in Discovery
 
-```
-Discovery validates:
-├─ X.509 certificate
-│  └─ CA signature
-│  └─ Not expired
-│  └─ Common Name or SAN contains room_id
-├─ Payload
-│  └─ room_id is present
-│  └─ Address and port are valid
-│  └─ max_players > 0
-│  └─ version is supported
-└─ The room is not already registered (no duplicates)
+```mermaid
+flowchart TD
+    request([Registration request]) --> cert{Certificate valid?}
+    cert -->|Yes| payload{Payload valid?}
+    cert -->|No| reject([Reject registration])
+    payload -->|Yes| duplicate{Room already registered?}
+    payload -->|No| reject
+    duplicate -->|No| accept([Register room])
+    duplicate -->|Yes| reject
+
+    certChecks["CA signature · not expired · room identity present"]
+    payloadChecks["room_id · address and port · max_players · supported version"]
+    cert -.-> certChecks
+    payload -.-> payloadChecks
 ```
 
 ### 4. Success Response
