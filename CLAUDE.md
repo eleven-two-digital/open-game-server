@@ -11,7 +11,7 @@ The project has no application/game-server source code yet (no `package.json`, `
 The project separates draft specs from final documentation:
 
 - `prd/` — accumulates specification drafts/requests as they come in (currently in Portuguese, each versioned via a header date like `2026.09.02-1`).
-- `docs/` — a Docusaurus site (classic preset, pt-BR) holding the final, polished version of the documentation. Currently just the scaffold (`docs/docs/intro.md` placeholder) — content still needs to be ported from `prd/`.
+- `docs/` — a Docusaurus site (classic preset, English locale) holding the final, polished version of the documentation. The content is written in English (not a literal translation of the drafts in `prd/`); the pages are a skeleton, and content still needs to be ported from `prd/`.
   - Commands (run from `docs/`): `npm install`, `npm start` (dev server), `npm run build` (static build to `docs/build`).
   - No `package-lock.json` is committed yet (gitignored) — CI uses `npm install` rather than `npm ci` until one exists. If you add a lockfile, remove it from `docs/.gitignore` and switch the workflow to `npm ci`.
 - `.github/workflows/docs.yml` builds the site on PRs touching `docs/**`, and builds + deploys to GitHub Pages on push to `main`. Deploy requires the repo's Pages source to be set to "GitHub Actions" in repo settings — not yet verified/enabled.
