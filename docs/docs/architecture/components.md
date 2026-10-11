@@ -26,7 +26,7 @@ HTTPS → Returns: JWT + Refresh Token
 
 ---
 
-## 2. Discovery Server / DNS
+## 2. Discovery Server
 
 **Role:** Central aggregator of rooms, address masker, and join ticket issuer.
 
@@ -44,7 +44,7 @@ HTTPS → Returns: JWT + Refresh Token
 - **Heartbeat/Lease**: rooms send heartbeats to renew their registration
 
 **Main endpoints:**
-- `POST /v1/dns/register`: room registration
+- `POST /v1/discovery/register`: room registration
 - `GET /v1/rooms`: masked listing
 - `POST /v1/rooms/resolve`: resolution with join ticket
 
@@ -57,7 +57,7 @@ HTTPS → Returns: JWT + Refresh Token
 **Responsibilities:**
 - Execute game logic (input validation, physics simulation, and so on)
 - Synchronize reactive state (`$.server`, `$.me`, `$.others`) with clients
-- Maintain smart caching with `_id` and `ttl`
+- Maintain smart caching with `_id` and `ttl_ms`
 - Authenticate clients through a join ticket plus the ECDH handshake
 - Support multiple transports (HTTP, WebSockets, SSE)
 - Self-register with Discovery on startup

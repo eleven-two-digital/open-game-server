@@ -37,11 +37,11 @@ On startup, the room:
 ### 2. Registration Request (mTLS)
 
 ```
-POST https://discovery.example.com:443/v1/dns/register
+POST https://discovery.example.com:443/v1/discovery/register
 Content-Type: application/json
 
 {
-  "room_id": "room-1234",
+  "masked_token": "tok_room_1234",
   "host": "192.168.1.100",
   "port": 9000,
   "protocol": "wss",
@@ -89,7 +89,7 @@ Discovery validates:
 ```json
 {
   "status": "registered",
-  "room_id": "room-1234",
+  "masked_token": "tok_room_1234",
   "lease_duration": 180,
   "heartbeat_interval": 30,
   "next_heartbeat_due": "2026-10-11T12:00:30Z",
@@ -117,14 +117,14 @@ Discovery validates:
 After a successful registration, the room sends a **periodic heartbeat**:
 
 ```
-POST https://discovery.example.com:443/v1/dns/heartbeat
+POST https://discovery.example.com:443/v1/discovery/heartbeat
 Content-Type: application/json
 
 {
-  "room_id": "room-1234",
+  "masked_token": "tok_room_1234",
   "current_players": 4,
   "game_state": "in_progress",
-  "timestamp": "2026-10-11T12:00:30Z"
+  "occurred_at": "2026-10-11T12:00:30Z"
 }
 ```
 
@@ -140,11 +140,11 @@ If a room sends no heartbeat for 180 seconds, Discovery removes it from the cata
 Before shutting down, the room enters **drain mode**:
 
 ```
-POST https://discovery.example.com:443/v1/dns/drain
+POST https://discovery.example.com:443/v1/discovery/drain
 Content-Type: application/json
 
 {
-  "room_id": "room-1234",
+  "masked_token": "tok_room_1234",
   "reason": "planned_maintenance",
   "drain_time_seconds": 60
 }

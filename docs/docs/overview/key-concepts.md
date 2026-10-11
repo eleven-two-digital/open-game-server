@@ -14,9 +14,9 @@ A room's state is organized in three layers:
 
 Every root-level attribute MUST contain:
 - **`_id`**: a hash or version of the state (identifies changes)
-- **`ttl`**: time-to-live (when it expires, the client reprocesses the attribute)
+- **`ttl_ms`**: time-to-live (when it expires, the client reprocesses the attribute)
 
-The client only recalculates when `_id` changes or `ttl` expires, which reduces processing and transmission.
+The client only recalculates when `_id` changes or `ttl_ms` expires, which reduces processing and transmission.
 
 ## Multi-Transport
 

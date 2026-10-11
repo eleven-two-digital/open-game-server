@@ -3,6 +3,17 @@
 **Versão da Especificação:** 2026.09.02-1  
 **Escopo:** Comunicação direta entre Cliente de Jogo e Instâncias de Salas Autônomas.
 
+
+## Viability
+
+**Conclusion:** viable with caveats.
+
+- **Technical viability:** the naming standard is a documentation-level protocol cleanup with no runtime effect; compatibility is primarily editorial and can be enforced by repo-wide search and docs build validation.
+- **Security and privacy impact:** the renames do not change trust boundaries or cryptographic flows; they reduce ambiguity for clients and operators and improve auditability.
+- **Compatibility impact:** the change is breaking for published draft identifiers, but no implementation or live clients exist yet. The migration is a protocol revision only, documented in the PRD and in the canonical identifier table.
+- **Effort and complexity:** low complexity because the scope is documentation-only and the canonical mappings are explicit; the main cost is cross-file review and the docs build gate.
+- **Rejected alternatives:** keep the old names forever, accept multiple names for the same concept, or defer the standardization until implementation exists. All three would preserve drift and increase integration risk.
+
 ---
 
 ## 1. Visão Geral
@@ -22,7 +33,7 @@ Antes de iniciar a negociação de sessão, qualquer cliente ou serviço externo
 ```json
 {
   "spec_version": "2026.09.02-1",
-  "room_id": "room_sa_east_104",
+  "masked_token": "tok_room_sa_east_104",
   "transports": {
     "websocket": "/v1/ws",
     "sse": "/v1/events",
@@ -44,7 +55,7 @@ Antes de iniciar a negociação de sessão, qualquer cliente ou serviço externo
       "player.eliminated",
       "custom.achievement_unlocked"
     ],
-    "subscription_endpoint": "/v1/events/subscribe"
+    "subscription_endpoint": "/v1/events"
   },
   "admin": {
     "handshake_endpoint": "/v1/admin/handshake"
@@ -101,7 +112,7 @@ A especificação aceita dois modos de operação para a troca de pacotes em tem
   - **Feedback do Servidor de Tempo Restante (`X-Rolling-TTL-Remaining`):** A sala responde a cada pacote indicando quanto tempo em milissegundos resta até o código atual expirar (ex: `X-Rolling-TTL-Remaining: 3200ms`). O cliente utiliza essa informação para saber a iteração exata do próximo código sem necessidade de sincronização de relógio perfeita.
   - **Ajuste Dinâmico pelo Servidor:** Se a sala detectar instabilidade ou comportamento suspeito, ela pode responder exigindo a redução da janela (ex: `X-Rolling-Window-Next: 2000ms`), forçando re-validações mais frequentes de forma transparente.
 - **Foco:** Mínima latência de CPU, zero chamadas de rede extras e integridade contínua de sessão.
-- **Uso:** Jogos de ação em tempo real, Battle Royale, simuladores de corrida, física contínua ou centenas de jogadores simultâneos.
+- **Uso:** Jogos de ação em tempo real, Battl_mse Royale, simuladores de corrida, física contínua ou centenas de jogadores simultâneos.
 
 ```mermaid
 sequenceDiagram
@@ -145,11 +156,11 @@ Os dados trafegados entre sala e cliente são organizados em nós de escopo raiz
 - `$.me`: Dados específicos enxergados/pertencentes estritamente ao jogador atual (ex: inventário, munição, vida exata, quests ativas).
 - `$.others`: Dados filtrados dos demais jogadores na sala (ex: posições espaciais, estados de animação, vida simplificada).
 
-### 4.2. A Regra de Ouro do Caching: Campos `_id` e `ttl`
+### 4.2. A Regra de Ouro do Caching: Campos `_id` e `ttl_ms`
 
 Todos os objetos na raiz do dicionário de estado **devem conter obrigatoriamente** os seguintes dois atributos:
 1. `_id` (string/hash): Identificador único da versão do estado daquele nó. Toda vez que qualquer dado dentro do nó muda, a sala gera um novo `_id`.
-2. `ttl` (integer em ms): Tempo de vida em milissegundos durante o qual aquele nó é considerado válido e garantidamente inalterado.
+2. `ttl_ms` (integer em ms): Tempo de vida em milissegundos durante o qual aquele nó é considerado válido e garantidamente inalterado.
 
 #### Exemplo de Payload de Estado (`GET /v1/state` ou via WebSocket/SSE):
 
@@ -157,14 +168,14 @@ Todos os objetos na raiz do dicionário de estado **devem conter obrigatoriament
 {
   "$.server": {
     "_id": "srv_hash_90412",
-    "ttl": 5000,
+    "ttl_ms": 5000,
     "round": 2,
     "phase": "IN_PROGRESS",
     "match_time_seconds": 124.5
   },
   "$.me": {
     "_id": "me_hash_1102",
-    "ttl": 100,
+    "ttl_ms": 100,
     "health": 85,
     "stamina": 100,
     "ammo": 28,
@@ -172,7 +183,7 @@ Todos os objetos na raiz do dicionário de estado **devem conter obrigatoriament
   },
   "$.others": {
     "_id": "others_hash_4491",
-    "ttl": 100,
+    "ttl_ms": 100,
     "players": [
       { "id": "p_202", "pos": [12.0, 0.0, 40.0], "anim": "RUN" },
       { "id": "p_309", "pos": [5.1, 0.0, 10.2], "anim": "IDLE" }
@@ -187,7 +198,7 @@ Todos os objetos na raiz do dicionário de estado **devem conter obrigatoriament
 flowchart TD
     A["Recebeu nó de estado (ex: $.server)"] --> B{"_id é IGUAL ao armazenado no cache?"}
     B -- Sim --> C{"Tempo atual < TTL acumulado?"}
-    C -- Sim --> D["IGNORAR PROCESSAMENTO (Economia de CPU / Deserialização)"]
+    C -- Sim --> D["IGNORAR processAMENTO (Economia de CPU / Deserialização)"]
     C -- Não --> E["Re-solicitar/Processar nó de estado"]
     B -- Não --> F["ATUALIZAR CACHE de _id e Reprocessar Nó"]
 ```
@@ -201,7 +212,7 @@ A sala expõe 3 modalidades de transporte que podem ser consumidas simultaneamen
 ### 5.1. WebSockets (Baixa Latência / Tempo Real)
 - Endpoint: `/v1/ws` (exige envio do `session_id` e header de autenticação cifrado).
 - Canal bidirecional e binário (JSON, Protobuf ou CBOR cifrados).
-- Utilizado para jogos de ação em tempo real (FPS, Racing, Battle Royale).
+- Utilizado para jogos de ação em tempo real (FPS, Racing, Battl_mse Royale).
 
 ### 5.2. Server-Sent Events - SSE + HTTP POST (Streaming de Eventos)
 - Endpoint PUSH (Server -> Client): `GET /v1/events` (Stream SSE contendo payloads JSON cifrados).
@@ -258,7 +269,7 @@ O administrador pode lançar eventos customizados na partida, interagindo com a 
 
 1. **RN-ROOM-01 (Validação Estrita de Ticket):** A sala não deve aceitar requisições de handshake sem a apresentação de um `Signed Join Ticket` válido emitido pelo Servidor Discovery.
 2. **RN-ROOM-02 (Criptografia Dinâmica Obrigatória):** Toda comunicação pós-handshake deve utilizar a chave de sessão derivável por ECDH. Pacotes não cifrados devem ser descartados.
-3. **RN-ROOM-03 (Campos Obrigatórios `_id` e `ttl`):** Todos os nós raiz (`$.server`, `$.me`, `$.others`) exportados no estado devem obrigatoriamente incluir os campos `_id` e `ttl`.
+3. **RN-ROOM-03 (Campos Obrigatórios `_id` e `ttl_ms`):** Todos os nós raiz (`$.server`, `$.me`, `$.others`) exportados no estado devem obrigatoriamente incluir os campos `_id` e `ttl_ms`.
 4. **RN-ROOM-04 (Isolamento de Dados em `$.me`):** A sala garante que a sub-árvore `$.me` contém apenas dados autorizados para o jogador daquela sessão. Um jogador jamais recebe os dados de `$.me` de outro jogador.
 5. **RN-ROOM-05 (Resposta HTTP 304 Not Modified):** No modo HTTP REST, requisições que enviarem hashes de `_id` equivalentes aos hashes atuais do servidor devem ser respondidas com status `304 Not Modified`.
 6. **RN-ROOM-06 (Compatibilidade de Transportes):** A sala deve aceitar conexões simultâneas de clientes consumindo via WebSocket, SSE ou HTTP REST, desde que autenticados.

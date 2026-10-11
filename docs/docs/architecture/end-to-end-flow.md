@@ -63,7 +63,7 @@ Client                               Discovery
   │                                  │
   ├─ POST /v1/rooms/resolve ────────>│
   │   (Bearer: JWT)                  │
-  │   (room_id: "room-1")            │
+  │   (masked_token: "tok_room_1")            │
   │                                  │
   │<─ 200 OK ────────────────────────┤
   │  {                               │
@@ -71,7 +71,7 @@ Client                               Discovery
   │    "port": 9000,                 │
   │    "protocol": "wss",            │
   │    "join_ticket": "base64(...)", │
-  │    "ttl": 300                    │
+  │    "ttl_seconds": 300                    │
   │  }                               │
 ```
 
@@ -106,7 +106,7 @@ Client                               Room
   │ ── (Derive Shared Secret) ──────>│
   │<── (Derive Shared Secret) ───────│
   │                                  │
-  ├─ POST /v1/handshake-verify ─────>│
+  ├─ POST /v1/handshake ─────>│
   │   (challenge_signature)          │
   │   (encrypted with session key)   │
   │                                  │
@@ -140,13 +140,13 @@ Room                                 Client
   │    "server": {                   │
   │      "game_state": "racing",     │
   │      "_id": "abc123",            │
-  │      "ttl": 60000                │
+  │      "ttl_ms": 60000                │
   │    },                            │
   │    "me": {                       │
   │      "position": {x, y, z},      │
   │      "speed": 45,                │
   │      "_id": "xyz789",            │
-  │      "ttl": 100                  │
+  │      "ttl_ms": 100                  │
   │    },                            │
   │    "others": [...]               │
   │  }                               │
@@ -160,9 +160,9 @@ Room                                 Client
    - `$.server`: global state
    - `$.me`: player data
    - `$.others`: opponent data
-2. Every root-level attribute has `_id` and `ttl`.
+2. Every root-level attribute has `_id` and `ttl_ms`.
 3. The client processes only changes (differences in `_id`).
-4. The client reprocesses an attribute when its `ttl` expires.
+4. The client reprocesses an attribute when its `ttl_ms` expires.
 
 ---
 
@@ -172,10 +172,10 @@ Room                                 Client
 Client                               Room
   │                                  │
   ├─ Send: "move forward" ──────────>│
-  │  (Encrypted, timestamp)          │
+  │  (Encrypted, occurred_at)          │
   │                                  │
   ├─ Send: "turn left" ─────────────>│
-  │  (Encrypted, timestamp)          │
+  │  (Encrypted, occurred_at)          │
   │                                  │
   │<─ State Update ──────────────────┤
   │  ($.others[].position updated)   │
@@ -191,7 +191,7 @@ Client                               Room
 1. The client sends inputs (movement, actions), encrypted.
 2. The room validates and applies the inputs.
 3. The room simulates the state and produces updates.
-4. The room sends updates with updated `_id` and `ttl`.
+4. The room sends updates with updated `_id` and `ttl_ms`.
 5. The client receives them, checks `_id`, and reprocesses only what changed.
 6. The loop continues until the match ends.
 

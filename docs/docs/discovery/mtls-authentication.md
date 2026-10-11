@@ -72,7 +72,7 @@ listeners:
 
     routes:
       # Room-facing (require client cert)
-      - path: "/v1/dns/*"
+      - path: "/v1/discovery/*"
         require_mTLS: true
 
       # Client-facing (JWT auth)

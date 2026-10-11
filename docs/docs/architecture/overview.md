@@ -21,7 +21,7 @@ The **Open Game Server Ecosystem** is a decentralized, high-performance architec
                         ↓
 ┌────────────────────────────────────────────────────┐
 │  Discovery & Proxy Layer                           │
-│  Discovery Server / DNS                            │
+│  Discovery Server                            │
 │  • mTLS with rooms                                 │
 │  • JWT/JWKS validation for clients                 │
 │  • Address masking                                 │
@@ -45,14 +45,14 @@ The **Open Game Server Ecosystem** is a decentralized, high-performance architec
 3. **Listing**: Discovery returns masked rooms and filters.
 4. **Resolution**: the client chooses a room and gets its address and a join ticket.
 5. **Handshake**: the client establishes ECDH with the room.
-6. **Synchronization**: client and room exchange reactive state with `_id`/`ttl`.
+6. **Synchronization**: client and room exchange reactive state with `_id`/`ttl_ms`.
 
 ## Responsibilities by Layer
 
 | Layer | What it does | Security |
 |-------|--------------|----------|
 | **IdP** | Issues player credentials | OAuth2 / OIDC / public key |
-| **Discovery/DNS** | Aggregates rooms, masks addresses, issues tickets | mTLS (rooms) + JWT/JWKS (clients) |
+| **Discovery** | Aggregates rooms, masks addresses, issues tickets | mTLS (rooms) + JWT/JWKS (clients) |
 | **Room** | Runs the match simulation | ECDH + AES-256-GCM / ChaCha20 |
 | **Client** | Renders the game, syncs inputs | Shared secret derived by ECDH |
 

@@ -14,7 +14,7 @@ Content-Type: application/json
 Authorization: Bearer <JWT>
 
 {
-  "room_id": "room-1234"
+  "masked_token": "tok_room_1234"
 }
 ```
 
@@ -38,13 +38,13 @@ A **join ticket** is a signed token containing:
 
 ```
 {
-  "room_id": "room-1234",
+  "masked_token": "tok_room_1234",
   "player_id": "player-xyz",
   "player_name": "johndoe",
   "player_avatar": "https://...",
   "issued_at": "2026-10-11T12:00:00Z",
   "expires_at": "2026-10-11T12:05:00Z",
-  "ttl": 300,
+  "ttl_seconds": 300,
   "signature": "HMAC-SHA256(body + secret)"
 }
 ```
@@ -53,8 +53,8 @@ A **join ticket** is a signed token containing:
 - `room_id`: the room ID (the client already knows it, but it is confirmed in the ticket)
 - `player_id`: the player ID (taken from the JWT)
 - `player_name`, `player_avatar`: optional player data
-- `issued_at`, `expires_at`: issuance and expiration timestamps
-- `ttl`: lifetime in seconds (300 = 5 minutes)
+- `issued_at`, `expires_at`: issuance and expiration occurred_ats
+- `ttl_ms`: lifetime in seconds (300 = 5 minutes)
 - `signature`: HMAC-SHA256 signed with the key shared between Discovery and the room
 
 **Properties:**
@@ -68,13 +68,13 @@ A **join ticket** is a signed token containing:
 ```json
 {
   "status": "resolved",
-  "room_id": "room-1234",
+  "masked_token": "tok_room_1234",
   "host": "192.168.1.100",
   "port": 9000,
   "protocol": "wss",
-  "path": "/v1/stream",
+  "path": "/v1/ws",
   "join_ticket": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "ttl": 300,
+  "ttl_seconds": 300,
   "server_time": "2026-10-11T12:00:00Z"
 }
 ```
@@ -83,9 +83,9 @@ A **join ticket** is a signed token containing:
 - `host`: the room's IP (now revealed)
 - `port`: the room's port
 - `protocol`: "wss" (WebSocket Secure), "https", or "http"
-- `path`: the path to connect to (for example, `/v1/stream`)
+- `path`: the path to connect to (for example, `/v1/ws`)
 - `join_ticket`: the base64 signed token to present to the room
-- `ttl`: how long the ticket is valid (seconds)
+- `ttl_ms`: how long the ticket is valid (seconds)
 
 ## Resolution Errors
 

@@ -90,7 +90,7 @@ When a client resolves a room through Discovery, it receives a **signed join tic
 {
   "room_id": "abc123",
   "player_id": "xyz789",
-  "ttl": 300,
+  "ttl_seconds": 300,
   "signature": "HMAC-SHA256(...)"
 }
 ```
