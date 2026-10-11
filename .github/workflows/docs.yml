@@ -53,3 +53,11 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Report published page
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          echo "Published page: ${PAGE_URL}"
+          echo "## Documentation published" >> "$GITHUB_STEP_SUMMARY"
+          echo "${PAGE_URL}" >> "$GITHUB_STEP_SUMMARY"
