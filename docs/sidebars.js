@@ -61,6 +61,7 @@ const sidebars = {
         'implementation/getting-started',
         'implementation/client-examples',
         'implementation/room-examples',
+        'implementation/aimduck',
         'implementation/deployment',
       ],
     },

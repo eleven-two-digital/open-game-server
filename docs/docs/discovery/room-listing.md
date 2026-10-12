@@ -50,7 +50,7 @@ If the JWT is invalid:
 {
   "rooms": [
     {
-      "id": "room-1234",
+      "masked_token": "tok_room_1234",
       "name": "Fast Track #1",
       "game_mode": "race",
       "current_players": 5,
@@ -66,7 +66,7 @@ If the JWT is invalid:
       "estimated_start_time": "2026-10-11T12:05:00Z"
     },
     {
-      "id": "room-5678",
+      "masked_token": "tok_room_5678",
       "name": "Casual Lobbies",
       "game_mode": "race",
       "current_players": 2,
@@ -78,7 +78,7 @@ If the JWT is invalid:
         "difficulty": "easy",
         "competitive": false
       },
-      "state": "draining",
+      "state": "drain",
       "drain_reason": "planned_maintenance"
     }
   ],
@@ -106,7 +106,7 @@ If the JWT is invalid:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Unique room ID (opaque to the client) |
+| `masked_token` | string | Opaque room-selection token; real room identity and address remain masked |
 | `name` | string | Human-readable name for the UI |
 | `game_mode` | string | Game type ("race", "puzzle", and so on) |
 | `current_players` | number | Players currently connected |
@@ -115,7 +115,7 @@ If the JWT is invalid:
 | `language` | string | Supported language |
 | `region` | string | Geographic region |
 | `tags` | object | Custom room metadata |
-| `state` | string | State ("active", "draining", "full") |
+| `state` | string | Operational state ("active" or frozen legacy value "drain") |
 | `estimated_start_time` | string | When the match starts (ISO 8601) |
 
 ## Applied Filters
@@ -124,7 +124,7 @@ Discovery filters by:
 
 1. **Player capacity**
    - Checks `current_players < max_players` (full rooms are hidden by default)
-   - Rooms in "draining" are marked but still returned
+   - Rooms in the frozen "drain" state are marked but still returned
 
 2. **Custom tags**
    - `game_mode`, `language`, and `region` match exactly (case-insensitive)

@@ -1,0 +1,59 @@
+{
+  "name": "@aimduck/workspace",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/shared",
+    "client",
+    "services/discovery",
+    "services/room"
+  ],
+  "scripts": {
+    "dev:setup": "tsx scripts/dev-setup.ts",
+    "dev": "npm run dev --workspace @aimduck/client",
+    "compose:up": "docker compose up --build --wait",
+    "compose:down": "docker compose down",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,css,html}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,css,html}\"",
+    "typecheck": "tsc --build",
+    "test": "vitest run",
+    "test:unit": "vitest run --project shared --project client --project discovery --project room",
+    "test:integration": "vitest run --project discovery --project room",
+    "test:e2e": "playwright test",
+    "test:compose": "docker compose config --quiet && vitest run --project discovery tests/integration/compose-config.test.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "10.0.2",
+    "fastify": "^5.12.5",
+    "jose": "5.9.6",
+    "oidc-client-ts": "3.2.1",
+    "phaser": "3.88.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "ws": "^8.22.0",
+    "zod": "3.24.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.22.0",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "22.13.10",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@types/ws": "8.5.14",
+    "@vitejs/plugin-react": "4.3.4",
+    "eslint": "^9.39.5",
+    "globals": "16.0.0",
+    "jsdom": "26.0.0",
+    "prettier": "3.5.3",
+    "tsx": "4.19.3",
+    "typescript": "5.8.2",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^6.4.4",
+    "vitest": "^5.0.4"
+  }
+}

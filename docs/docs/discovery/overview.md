@@ -70,7 +70,8 @@ flowchart LR
 
 - **`POST /v1/discovery/register`**: self-registration of a new room
 - **`POST /v1/discovery/heartbeat`**: renew the lease and report state
-- **`POST /v1/discovery/drain`**: signal the end of the room's life
+- **`POST /v1/dns/drain`**: frozen legacy identifier pending Open Decision OD1; do not treat
+  `/v1/discovery/drain` as canonical until that decision is recorded
 
 ## Discovery Flow
 

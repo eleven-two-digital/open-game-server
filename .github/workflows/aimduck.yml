@@ -1,0 +1,75 @@
+name: Aimduck sample
+
+on:
+  pull_request:
+    paths:
+      - "samples/aimduck/**"
+      - "docs/**"
+      - ".github/workflows/aimduck.yml"
+      - "CLAUDE.md"
+  push:
+    branches: [main]
+    paths:
+      - "samples/aimduck/**"
+      - "docs/**"
+      - ".github/workflows/aimduck.yml"
+      - "CLAUDE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: samples/aimduck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: samples/aimduck/package-lock.json
+
+      - run: npm ci
+      - run: npm run dev:setup
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npx playwright install --with-deps chromium
+
+      - name: Start the complete local stack
+        run: docker compose up --build --wait
+
+      - name: Verify room restart and continued availability
+        run: npm run test:integration -- tests/integration/compose-room-restart.test.ts
+        env:
+          AIMDUCK_COMPOSE_RESTART: "1"
+
+      - name: Scan generated artifacts and built images
+        run: npm run test:integration -- tests/integration/security-artifacts.test.ts
+        env:
+          AIMDUCK_SECURITY_IMAGE_SCAN: "1"
+
+      - name: Run browser acceptance tests
+        run: npm run test:e2e -- --workers=1
+        env:
+          AIMDUCK_COMPOSE_E2E: "1"
+
+      - run: npm run test:compose
+      - run: npm run build
+
+      - name: Build documentation
+        working-directory: docs
+        run: |
+          npm install
+          npm run build
+
+      - name: Stop the local stack
+        if: always()
+        run: docker compose down

@@ -1,0 +1,163 @@
+services:
+  idp:
+    image: quay.io/keycloak/keycloak:26.1
+    command: ["start-dev", "--import-realm", "--http-port=8080", "--hostname=http://localhost:8180"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin-local-only
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - ./infra/keycloak/realm-import:/opt/keycloak/data/import:ro
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  discovery:
+    build:
+      context: .
+      dockerfile: Dockerfile.discovery
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8443"
+      OIDC_ISSUER: http://localhost:8180/realms/aimduck
+      OIDC_JWKS_URI: http://idp:8080/realms/aimduck/protocol/openid-connect/certs
+      OIDC_AUDIENCE: aimduck-client
+      ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+      LEASE_TTL_SECONDS: "30"
+      TICKET_SECRET_PATH: /run/secrets/room-1.ticket
+      ROOM_SECRET_DIR: /run/secrets
+      ROOM_IDS: room-1,room-2
+      TLS_CERT_PATH: /run/certs/discovery.crt
+      TLS_KEY_PATH: /run/certs/discovery.key
+      MTLS_CA_PATH: /run/certs/ca.crt
+    ports:
+      - "127.0.0.1:8080:8443"
+    volumes:
+      - ./infra/dev-certs:/run/certs:ro
+      - ./infra/local-secrets:/run/secrets:ro
+    depends_on:
+      idp:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('https').get({hostname:'127.0.0.1',port:8443,path:'/readyz',rejectUnauthorized:false},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  room-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.room
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment: &room-env
+      HOST: 0.0.0.0
+      PORT: "8443"
+      ROOM_ID: room-1
+      PUBLIC_HOST: localhost
+      PUBLIC_PORT: "9101"
+      DISCOVERY_URL: https://discovery:8443
+      OIDC_ISSUER: http://localhost:8180/realms/aimduck
+      OIDC_JWKS_URI: http://idp:8080/realms/aimduck/protocol/openid-connect/certs
+      OIDC_AUDIENCE: aimduck-client
+      ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173"
+      HEARTBEAT_SECONDS: "10"
+      LEASE_TTL_SECONDS: "30"
+      TICKET_SECRET_PATH: /run/secrets/room-1.ticket
+      TLS_CERT_PATH: /run/certs/room-1.crt
+      TLS_KEY_PATH: /run/certs/room-1.key
+      MTLS_CA_PATH: /run/certs/ca.crt
+      MTLS_CERT_PATH: /run/certs/room-1-mtls.crt
+      MTLS_KEY_PATH: /run/certs/room-1-mtls.key
+    ports:
+      - "127.0.0.1:9101:8443"
+    volumes:
+      - ./infra/dev-certs:/run/certs:ro
+      - ./infra/local-secrets/room-1.ticket:/run/secrets/room-1.ticket:ro
+    depends_on:
+      discovery:
+        condition: service_healthy
+      idp:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('https').get({hostname:'127.0.0.1',port:8443,path:'/readyz',rejectUnauthorized:false},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  room-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.room
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      <<: *room-env
+      ROOM_ID: room-2
+      PUBLIC_PORT: "9102"
+      TICKET_SECRET_PATH: /run/secrets/room-2.ticket
+      TLS_CERT_PATH: /run/certs/room-2.crt
+      TLS_KEY_PATH: /run/certs/room-2.key
+      MTLS_CERT_PATH: /run/certs/room-2-mtls.crt
+      MTLS_KEY_PATH: /run/certs/room-2-mtls.key
+    ports:
+      - "127.0.0.1:9102:8443"
+    volumes:
+      - ./infra/dev-certs:/run/certs:ro
+      - ./infra/local-secrets/room-2.ticket:/run/secrets/room-2.ticket:ro
+    depends_on:
+      discovery:
+        condition: service_healthy
+      idp:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('https').get({hostname:'127.0.0.1',port:8443,path:'/readyz',rejectUnauthorized:false},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+      args:
+        VITE_DISCOVERY_URL: https://localhost:8080
+        VITE_OIDC_AUTHORITY: http://localhost:8180/realms/aimduck
+        VITE_OIDC_CLIENT_ID: aimduck-browser
+    ports:
+      - "127.0.0.1:5173:8080"
+    depends_on:
+      idp:
+        condition: service_healthy
+      discovery:
+        condition: service_healthy
+      room-1:
+        condition: service_healthy
+      room-2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10

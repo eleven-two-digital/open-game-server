@@ -1,0 +1,198 @@
+{
+  "realm": "aimduck",
+  "enabled": true,
+  "displayName": "Aimduck Local Demo",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed": false,
+  "clients": [
+    {
+      "clientId": "aimduck-browser",
+      "name": "Aimduck browser",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/auth/callback",
+        "http://127.0.0.1:5173/auth/callback"
+      ],
+      "webOrigins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://127.0.0.1:5173/*"
+      },
+      "defaultClientScopes": ["web-origins", "profile", "aimduck-identity", "aimduck-audience"]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "aimduck-identity",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "Aimduck player ID",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "player_id",
+            "claim.name": "player_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "web-origins",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "allowed web origins",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-allowed-origins-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "full name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "aimduck-audience",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "Aimduck API audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "aimduck-client",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "duck01",
+      "enabled": true,
+      "email": "duck01@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000101"] },
+      "firstName": "Duck",
+      "lastName": "01",
+      "credentials": [{ "type": "password", "value": "duck01-local", "temporary": false }]
+    },
+    {
+      "username": "duck02",
+      "enabled": true,
+      "email": "duck02@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000102"] },
+      "firstName": "Duck",
+      "lastName": "02",
+      "credentials": [{ "type": "password", "value": "duck02-local", "temporary": false }]
+    },
+    {
+      "username": "duck03",
+      "enabled": true,
+      "email": "duck03@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000103"] },
+      "firstName": "Duck",
+      "lastName": "03",
+      "credentials": [{ "type": "password", "value": "duck03-local", "temporary": false }]
+    },
+    {
+      "username": "duck04",
+      "enabled": true,
+      "email": "duck04@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000104"] },
+      "firstName": "Duck",
+      "lastName": "04",
+      "credentials": [{ "type": "password", "value": "duck04-local", "temporary": false }]
+    },
+    {
+      "username": "duck05",
+      "enabled": true,
+      "email": "duck05@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000105"] },
+      "firstName": "Duck",
+      "lastName": "05",
+      "credentials": [{ "type": "password", "value": "duck05-local", "temporary": false }]
+    },
+    {
+      "username": "duck06",
+      "enabled": true,
+      "email": "duck06@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000106"] },
+      "firstName": "Duck",
+      "lastName": "06",
+      "credentials": [{ "type": "password", "value": "duck06-local", "temporary": false }]
+    },
+    {
+      "username": "duck07",
+      "enabled": true,
+      "email": "duck07@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000107"] },
+      "firstName": "Duck",
+      "lastName": "07",
+      "credentials": [{ "type": "password", "value": "duck07-local", "temporary": false }]
+    },
+    {
+      "username": "duck08",
+      "enabled": true,
+      "email": "duck08@example.test",
+      "emailVerified": true,
+      "attributes": { "player_id": ["11111111-1111-4111-8111-000000000108"] },
+      "firstName": "Duck",
+      "lastName": "08",
+      "credentials": [{ "type": "password", "value": "duck08-local", "temporary": false }]
+    }
+  ]
+}

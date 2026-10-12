@@ -14,8 +14,8 @@ On startup, the room:
 
 1. Reads its configuration:
    ```
-   DNS_HOST=discovery.example.com
-   DNS_PORT=443
+   DISCOVERY_HOST=discovery.example.com
+   DISCOVERY_PORT=443
    ROOM_ID=room-1234
    MAX_PLAYERS=8
    GAME_MODE=race
@@ -41,7 +41,7 @@ POST https://discovery.example.com:443/v1/discovery/register
 Content-Type: application/json
 
 {
-  "masked_token": "tok_room_1234",
+  "room_id": "room-1234",
   "host": "192.168.1.100",
   "port": 9000,
   "protocol": "wss",
@@ -64,9 +64,9 @@ Content-Type: application/json
 }
 ```
 
-**Security headers:**
-- `Client-Certificate: <X.509 cert>`: the room's certificate
-- The connection uses mTLS: Discovery validates the certificate before processing the request
+**Security:**
+- The room presents its X.509 client certificate during the TLS handshake.
+- The connection uses mTLS: Discovery validates the certificate before processing the request.
 
 ### 3. Validation in Discovery
 
@@ -92,16 +92,16 @@ flowchart TD
 {
   "status": "registered",
   "masked_token": "tok_room_1234",
-  "lease_duration": 180,
-  "heartbeat_interval": 30,
+  "lease_ttl_seconds": 180,
+  "heartbeat_interval_seconds": 30,
   "next_heartbeat_due": "2026-10-11T12:00:30Z",
   "server_time": "2026-10-11T12:00:00Z"
 }
 ```
 
 **Fields:**
-- `lease_duration`: how long the room stays registered without a heartbeat (seconds)
-- `heartbeat_interval`: recommended heartbeat frequency
+- `lease_ttl_seconds`: how long the room stays registered without a heartbeat
+- `heartbeat_interval_seconds`: recommended heartbeat frequency
 - `next_heartbeat_due`: when to send the next heartbeat to avoid a timeout
 
 ## Registration Errors
@@ -135,14 +135,19 @@ Content-Type: application/json
 - Report the current number of players
 - Signal that the room is alive
 
-If a room sends no heartbeat for 180 seconds, Discovery removes it from the catalog.
+If a room sends no heartbeat before `lease_ttl_seconds` expires, Discovery removes it from the
+catalog.
 
-## Deregistration (Drain Mode)
+The separate `/v1/dns/drain` endpoint is a frozen legacy identifier pending canonical naming
+decision OD1. The naming contract retains this path until OD1 is recorded; this document does not
+resolve that protocol decision.
+
+## Graceful Shutdown (Drain Mode)
 
 Before shutting down, the room enters **drain mode**:
 
 ```
-POST https://discovery.example.com:443/v1/discovery/drain
+POST https://discovery.example.com:443/v1/dns/drain
 Content-Type: application/json
 
 {
@@ -153,11 +158,10 @@ Content-Type: application/json
 ```
 
 **Effect on Discovery:**
-1. The room is marked as "draining" in the catalog.
-2. Clients receive a `draining: true` flag in the listing.
-3. Clients know not to choose this room (new clients and clients already in the room are notified).
-4. The room keeps serving its existing players.
-5. After `drain_time_seconds`, the room is removed from the registry.
+1. The room is marked with the frozen `"drain"` state in the catalog.
+2. The listing communicates the room state so clients do not choose it for new matches.
+3. The room keeps serving its existing players.
+4. After `drain_time_seconds`, the room is removed from the registry.
 
 This flow enables **graceful shutdown** without abrupt interruption.
 

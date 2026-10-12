@@ -1,0 +1,14 @@
+{
+  "name": "@aimduck/room",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aimduck/shared": "*"
+  }
+}

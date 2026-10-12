@@ -22,13 +22,13 @@ Authorization: Bearer <JWT>
 - `Authorization: Bearer <JWT>`: the player's JWT
 
 **Body:**
-- `room_id`: the ID of the chosen room (obtained from the listing)
+- `masked_token`: the opaque room-selection token returned by the listing
 
 ## Validation in Discovery
 
 1. Extracts and validates the JWT (same process as `GET /v1/rooms`)
 2. Checks that the room `room_id` exists and is active
-3. Checks that the room is not "full" or "draining"
+3. Checks that the room is not "full" or in the frozen `"drain"` state
 4. Extracts the `player_id` from the JWT
 5. Generates a signed join ticket
 
@@ -38,6 +38,7 @@ A **join ticket** is a signed token containing:
 
 ```
 {
+  "room_id": "room-1234",
   "masked_token": "tok_room_1234",
   "player_id": "player-xyz",
   "player_name": "johndoe",
@@ -53,8 +54,8 @@ A **join ticket** is a signed token containing:
 - `room_id`: the room ID (the client already knows it, but it is confirmed in the ticket)
 - `player_id`: the player ID (taken from the JWT)
 - `player_name`, `player_avatar`: optional player data
-- `issued_at`, `expires_at`: issuance and expiration occurred_ats
-- `ttl_ms`: lifetime in seconds (300 = 5 minutes)
+- `issued_at`, `expires_at`: issuance and expiration timestamps
+- `ttl_seconds`: lifetime in seconds (300 = 5 minutes)
 - `signature`: HMAC-SHA256 signed with the key shared between Discovery and the room
 
 **Properties:**
@@ -85,7 +86,7 @@ A **join ticket** is a signed token containing:
 - `protocol`: "wss" (WebSocket Secure), "https", or "http"
 - `path`: the path to connect to (for example, `/v1/ws`)
 - `join_ticket`: the base64 signed token to present to the room
-- `ttl_ms`: how long the ticket is valid (seconds)
+- `ttl_seconds`: how long the ticket is valid
 
 ## Resolution Errors
 
